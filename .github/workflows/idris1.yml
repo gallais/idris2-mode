@@ -12,7 +12,80 @@ on:
       - main
 
 jobs:
-  build:
+  caching-git:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache Idris from git
+        id: idris-git-cache
+        uses: actions/cache@v2
+        with:
+          key: idris-git
+          path: |
+            ~/.local/bin/idris
+            ~/.stack
+            ~/.stack-work
+
+      - name: Fetch stack
+        if: steps.idris-git-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+      - name: Install Idris from GIT
+        # if: steps.idris-git-cache.outputs.cache-hit != 'true'
+        run: |
+          pushd .
+          git clone https://github.com/idris-lang/Idris-dev.git /tmp/Idris-dev
+          cd /tmp/Idris-dev
+          stack --no-terminal --install-ghc install --flag idris:-FFI --flag idris:-GMP
+          popd
+
+      - name: Upload Idris Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: idris-git
+          path: |
+            ~/.local/bin/idris
+            ~/.stack
+            ~/.stack-work
+
+  caching-stackage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache Idris from stackage
+        id: idris-stackage-cache
+        uses: actions/cache@v2
+        with:
+          key: idris-stackage
+          path: |
+            ~/.local/bin/idris
+            ~/.stack
+            ~/.stack-work
+
+      - name: Fetch stack
+        # if: steps.idris-stackage-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+      - name: Install Idris from Stackage
+        if: steps.idris-stackage-cache.outputs.cache-hit != 'true'
+        run: |
+          stack install --resolver lts-12.26 idris
+
+      - name: Upload Idris Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: idris-stackage
+          path: |
+            ~/.local/bin/idris
+            ~/.stack
+            ~/.stack-work
+
+  testing:
+    needs: [caching-git, caching-stackage]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,38 +96,33 @@ jobs:
       IDRIS_VERSION: ${{ matrix.idris }}
 
     steps:
-      - name: Fetch Dependencies
-        run: sudo apt install -y libgc-dev libgif-dev libxaw7-dev openssl
-
-      - name: Fetch Stack
-        run: |
-          mkdir -p ~/.local/bin
-          export PATH=$HOME/.local/bin:$PATH
-          curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
       - name: Fetch Emacs
         uses: purcell/setup-emacs@master
         with:
           version: ${{ matrix.emacs }}
 
-      - name: Install Idris from GIT
-        if: matrix.idris == 'git'
+      - name: Download Idris Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: idris-${{ matrix.idris }}
+          path: |
+            ~/.local/bin/idris
+            ~/.stack
+            ~/.stack-work
+
+      - name: Set the stage
         run: |
-          pushd .
-          git clone https://github.com/idris-lang/Idris-dev.git /tmp/Idris-dev
-          cd /tmp/Idris-dev
-          stack --no-terminal --install-ghc install --flag idris:-FFI --flag idris:-GMP
-          popd
-      - name: Install Idris from Stackage
-        if: matrix.idris == 'stackage'
-        run: |
-          stack install --resolver lts-12.26 idris
+          mkdir -p ~/.local/bin
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          chmod +x "$HOME/.local/bin/idris"
 
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Run Tests
         run: |
+          which idris
+          idris --version
           make clean
           make build
           make test
