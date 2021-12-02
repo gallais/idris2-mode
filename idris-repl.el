@@ -45,7 +45,7 @@
 
 (defun idris-luminance (rgb)
   "Return the luminance of an RGB color"
-  (caddr (apply 'color-rgb-to-hsl rgb)))
+  (cl-caddr (apply 'color-rgb-to-hsl rgb)))
 
 (defun idris-contrast-ratio-against-black (color-name)
   "Calculate the contrast ratio of two colors given by name
