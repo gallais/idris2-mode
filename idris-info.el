@@ -111,12 +111,10 @@ Ensure that the buffer is in `idris-info-mode'."
   "Exits the info window. Tries to go back to the previous window and buffer before it was opened."
   (interactive)
   (idris-kill-buffer idris-info-buffer-name)
-  (if (and idris-buffer-to-return-to-from-info-buffer (buffer-live-p idris-buffer-to-return-to-from-info-buffer))
-      (pop-to-buffer idris-buffer-to-return-to-from-info-buffer `(display-buffer-reuse-window))
-    ()
-    )
-  (setq idris-buffer-to-return-to-from-info-buffer nil)
-  )
+  (if (and idris-buffer-to-return-to-from-info-buffer
+           (buffer-live-p idris-buffer-to-return-to-from-info-buffer))
+      (pop-to-buffer idris-buffer-to-return-to-from-info-buffer `(display-buffer-reuse-window)))
+  (setq idris-buffer-to-return-to-from-info-buffer nil))
 
 (defun idris-info-buffer-visible-p ()
   (if (get-buffer-window idris-info-buffer-name 'visible) t nil))
