@@ -1,4 +1,4 @@
-;;; idris2-common-utils.el --- Useful utilities -*- lexical-binding: t -*-
+;;; idris-common-utils.el --- Useful utilities -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2015 Hannes Mehnert and David Raymond Christiansen
 
@@ -25,48 +25,48 @@
 
 ;;; Commentary
 ;; This file contains various useful things that are employed
-;; throughout idris2-mode.
+;; throughout idris-mode.
 
 ;;; Code:
-(require 'idris2-core)
-(require 'idris2-settings)
+(require 'idris-core)
+(require 'idris-settings)
 (require 'cl-lib)
 
 
 ;;; These variables are here because many things depend on them
-(defvar-local idris2-buffer-dirty-p t
-  "An Idris2 buffer is dirty if there have been modifications since it was last loaded")
+(defvar-local idris-buffer-dirty-p t
+  "An Idris buffer is dirty if there have been modifications since it was last loaded")
 
-(defvar idris2-currently-loaded-buffer nil
-  "The buffer currently loaded by the running Idris2")
+(defvar idris-currently-loaded-buffer nil
+  "The buffer currently loaded by the running Idris")
 
-(defvar idris2-loaded-region-overlay nil
-  "The region loaded by Idris2, should such a thing exist")
+(defvar idris-loaded-region-overlay nil
+  "The region loaded by Idris, should such a thing exist")
 
-(defvar idris2-process-current-working-directory ""
-  "Working directory of Idris2 process")
+(defvar idris-process-current-working-directory ""
+  "Working directory of Idris process")
 
-(defvar idris2-command-line-option-functions nil
-  "A list of functions to call to compute the command-line arguments to Idris2.
+(defvar idris-command-line-option-functions nil
+  "A list of functions to call to compute the command-line arguments to Idris.
 Each function should take no arguments and return a list of
 strings that are suitable arguments to `start-process'.")
 
-(defvar idris2-mode-path nil
-  "Directory containing the `idris2-mode' package.
+(defvar idris-mode-path nil
+  "Directory containing the `idris-mode' package.
 This is used to load resource files such as images.  The default
 value is automatically computed from the location of the Emacs
 Lisp package.")
 (when load-file-name ;; guard to allow M-x eval-buffer
-  (setq idris2-mode-path (file-name-directory load-file-name)))
+  (setq idris-mode-path (file-name-directory load-file-name)))
 
-(defun idris2-buffer-name (type)
+(defun idris-buffer-name (type)
   (cl-assert (keywordp type))
-  (concat (format "*idris2-%s*" (substring (symbol-name type) 1))))
+  (concat (format "*idris-%s*" (substring (symbol-name type) 1))))
 
-(defun idris2-kill-buffer (buffer)
+(defun idris-kill-buffer (buffer)
   (let ((buf (cond
               ((symbolp buffer)
-               (get-buffer (idris2-buffer-name buffer)))
+               (get-buffer (idris-buffer-name buffer)))
               ((stringp buffer)
                (get-buffer buffer))
               ((bufferp buffer)
@@ -74,19 +74,19 @@ Lisp package.")
               (t (message "don't know how to kill buffer")))))
     (when (and buf (buffer-live-p buf)) (kill-buffer buf))))
 
-(defun idris2-minibuffer-respecting-message (text &rest args)
+(defun idris-minibuffer-respecting-message (text &rest args)
   "Display TEXT as a message, without hiding any minibuffer contents."
   (let ((mtext (format " [%s]" (apply #'format text args))))
     (if (minibuffer-window-active-p (minibuffer-window))
         (minibuffer-message mtext)
       (message "%s" mtext))))
 
-(defun idris2-same-line-p (pos1 pos2)
+(defun idris-same-line-p (pos1 pos2)
   "Return t if buffer positions POS1 and POS2 are on the same line."
   (save-excursion (goto-char (min pos1 pos2))
                   (<= (max pos1 pos2) (line-end-position))))
 
-(defmacro idris2-save-marker (marker &rest body)
+(defmacro idris-save-marker (marker &rest body)
   "Save the contents of the marker MARKER while executing BODY."
   (declare (indent 1))
   (let ((pos (cl-gensym "pos")))
@@ -94,7 +94,7 @@ Lisp package.")
      (prog1 (progn . ,body)
        (set-marker ,marker ,pos)))))
 
-(defmacro idris2-propertize-region (props &rest body)
+(defmacro idris-propertize-region (props &rest body)
   "Execute BODY and add PROPS to all the text it inserts.
 More precisely, PROPS are added to the region between the point's
 positions before and after executing BODY."
@@ -104,7 +104,7 @@ positions before and after executing BODY."
        (prog1 (progn ,@body)
 	 (add-text-properties ,start (point) ,props)))))
 
-(defmacro idris2-propertize-spans (spans &rest body)
+(defmacro idris-propertize-spans (spans &rest body)
   "Execute BODY and add the properties indicated by SPANS to the
 inserted text (that is, relative to point prior to insertion)."
   (declare (indent 1))
@@ -117,9 +117,9 @@ inserted text (that is, relative to point prior to insertion)."
                                           props))))))
 
 ;;; TODO: Take care of circular dependency issue
-(autoload 'idris2-eval "inferior-idris2.el")
+(autoload 'idris-eval "inferior-idris.el")
 
-(defun idris2-make-link-keymap (url)
+(defun idris-make-link-keymap (url)
   "Compute the keymap for a clickable link to URL."
   (let ((map (make-sparse-keymap))
         (browse (lambda () (interactive) (browse-url url))))
@@ -128,55 +128,55 @@ inserted text (that is, relative to point prior to insertion)."
     (define-key map (kbd "RET") browse)
     map))
 
-(defconst idris2-semantic-properties-clickable-decors
+(defconst idris-semantic-properties-clickable-decors
   '(:type :data :function :metavar :module :namespace :postulate)
   "The decors that should light up as responsive to mouse clicks.")
 
-(defun idris2-semantic-properties-face (props)
-  "Compute the text property `face' from the Idris2 properties for a region."
+(defun idris-semantic-properties-face (props)
+  "Compute the text property `face' from the Idris properties for a region."
   (let* ((decor (assoc :decor props))
          (implicit (assoc :implicit props))
          (text-format (assoc :text-formatting props))
-         (idris2-err (assoc :error props))
+         (idris-err (assoc :error props))
          (link-href (assoc :link-href props))
          (qquote (assoc :quasiquotation props))
          (aquote (assoc :antiquotation props))
          (decor-face (if decor
                          (pcase (cadr decor)
-                           (:type '(idris2-semantic-type-face))
-                           (:data '(idris2-semantic-data-face))
-                           (:function '(idris2-semantic-function-face))
-                           (:keyword '(idris2-keyword-face))
-                           (:metavar '(idris2-hole-face))
-                           (:bound '(idris2-semantic-bound-face))
-                           (:namespace '(idris2-semantic-namespace-face))
-                           (:postulate '(idris2-semantic-postulate-face))
-                           (:module '(idris2-semantic-module-face))
+                           (:type '(idris-semantic-type-face))
+                           (:data '(idris-semantic-data-face))
+                           (:function '(idris-semantic-function-face))
+                           (:keyword '(idris-keyword-face))
+                           (:metavar '(idris-hole-face))
+                           (:bound '(idris-semantic-bound-face))
+                           (:namespace '(idris-semantic-namespace-face))
+                           (:postulate '(idris-semantic-postulate-face))
+                           (:module '(idris-semantic-module-face))
                            (_ nil))
                        nil))
          (implicit-face (if (and implicit (equal (cadr implicit) :True))
-                            '(idris2-semantic-implicit-face)
+                            '(idris-semantic-implicit-face)
                           nil))
-         (err-face (if idris2-err
-                       '(idris2-warning-face)
+         (err-face (if idris-err
+                       '(idris-warning-face)
                      ()))
          (text-face (pcase (cadr text-format)
                       (:bold '(bold))
                       (:italic '(italic))
                       (:underline '(underline))
                       (_ nil)))
-         (link-face (if link-href '(idris2-link-face) ()))
+         (link-face (if link-href '(idris-link-face) ()))
          (unique-val (cl-gensym)) ; HACK to stop consecutive mouse-faces from interfering
          (mousable-face
-          (cond ((member (cadr decor) idris2-semantic-properties-clickable-decors)
+          (cond ((member (cadr decor) idris-semantic-properties-clickable-decors)
                  `((:inherit (,decor-face highlight) :hack ,unique-val)))
-                (idris2-err
-                 `((:inherit ('idris2-warning-face highlight))))
+                (idris-err
+                 `((:inherit ('idris-warning-face highlight))))
                 (link-href
                  '(highlight))
                 (t nil)))
-         (qquote-face (when qquote '(idris2-quasiquotation-face)))
-         (aquote-face (when aquote '(idris2-antiquotation-face)))
+         (qquote-face (when qquote '(idris-quasiquotation-face)))
+         (aquote-face (when aquote '(idris-antiquotation-face)))
          (computed-face (append text-face
                                 implicit-face
                                 decor-face
@@ -188,8 +188,8 @@ inserted text (that is, relative to point prior to insertion)."
             (if mousable-face (list 'mouse-face mousable-face) ()))))
 
 
-(defun idris2-semantic-properties-eldoc (props)
-  "Compute an Eldoc string from Idris2 semantic properties PROPS"
+(defun idris-semantic-properties-eldoc (props)
+  "Compute an Eldoc string from Idris semantic properties PROPS"
   (let* ((name (assoc :name props))
          (namespace (assoc :namespace props))
          (source-file (assoc :source-file props))
@@ -205,24 +205,24 @@ inserted text (that is, relative to point prior to insertion)."
                                       (replace-regexp-in-string "\\\n" " " docs))
                             ""))
                          (_ ""))))
-    (cond (name (list 'idris2-eldoc
+    (cond (name (list 'idris-eldoc
                       (concat (cadr name)
                               ;; Emacs will do its own line-wrapping in Eldoc
                               (replace-regexp-in-string "\\\n" " " type)
                               doc-overview)))
           ((and namespace source-file)
-           (list 'idris2-eldoc
+           (list 'idris-eldoc
                  (file-relative-name (cadr source-file))))
-          (namespace (list 'idris2-eldoc
+          (namespace (list 'idris-eldoc
                            (cadr namespace)))
           (t nil))))
 
 
-(defun idris2-semantic-properties-help-echo (props)
+(defun idris-semantic-properties-help-echo (props)
   (let* ((name (assoc :name props))
          (decor (assoc :decor props))
          (namespace (assoc :namespace props))
-         (idris2-err (assoc :error props))
+         (idris-err (assoc :error props))
          (link-href (assoc :link-href props))
          (image (assoc :image props))
          (type (pcase (assoc :type props)
@@ -232,9 +232,9 @@ inserted text (that is, relative to point prior to insertion)."
                          (`(:doc-overview ,docs) (concat "\n" docs))
                          (_ "")))
          (mouse-help
-          (cond ((member (cadr decor) idris2-semantic-properties-clickable-decors)
+          (cond ((member (cadr decor) idris-semantic-properties-clickable-decors)
                  "\n<mouse-3> context menu")
-                (idris2-err (idris2-eval `(:error-string ,(cadr idris2-err))))
+                (idris-err (idris-eval `(:error-string ,(cadr idris-err))))
                 (t ""))))
     (cond (name (list 'help-echo
                       (concat (cadr name)
@@ -246,15 +246,15 @@ inserted text (that is, relative to point prior to insertion)."
           (image (list 'help-echo (cadr image)))
           (t nil))))
 
-(defun idris2-semantic-properties (props)
-  "Compute how to highlight with Idris2 compiler properties PROPS."
+(defun idris-semantic-properties (props)
+  "Compute how to highlight with Idris compiler properties PROPS."
   (let* ((name (assoc :name props))
          (decor (assoc :decor props))
          (term (assoc :tt-term props))
          (key (assoc :key props))
          (namespace (assoc :namespace props))
          (source-file (assoc :source-file props))
-         (idris2-err (assoc :error props))
+         (idris-err (assoc :error props))
          (link-href (assoc :link-href props))
          (image (assoc :image props)))
     (append '(rear-nonsticky t)
@@ -262,54 +262,54 @@ inserted text (that is, relative to point prior to insertion)."
                    (if (and (member (cadr decor)
                                     '(:type :data :function :metavar))
                             name)
-                       (append (list 'idris2-ref (cadr name)
-                                     'idris2-ref-style (cadr decor))
+                       (append (list 'idris-ref (cadr name)
+                                     'idris-ref-style (cadr decor))
                                (when namespace
-                                 (list 'idris2-namespace (cadr namespace))))
+                                 (list 'idris-namespace (cadr namespace))))
                      ()))
                   (namespace
                    (if (or (equal (cadr decor) :module)
                            (equal (cadr decor) :namespace))
-                       (append (list 'idris2-namespace (cadr namespace))
+                       (append (list 'idris-namespace (cadr namespace))
                                (when source-file
-                                 (list 'idris2-source-file (cadr source-file))))
+                                 (list 'idris-source-file (cadr source-file))))
                      ()))
                   (link-href
-                   (list 'keymap (idris2-make-link-keymap (cadr link-href))
-                         'idris2-url (cadr link-href)))
+                   (list 'keymap (idris-make-link-keymap (cadr link-href))
+                         'idris-url (cadr link-href)))
                   (image
                    (list 'display
                          `(image :type imagemagick
                                  :file ,(expand-file-name (cl-caddr image)
-                                                          (file-name-directory idris2-process-current-working-directory)))))
+                                                          (file-name-directory idris-process-current-working-directory)))))
                   (t nil))
             (if term
-                (list 'idris2-tt-term (cadr term))
+                (list 'idris-tt-term (cadr term))
               ())
             (if key
-                (list 'idris2-name-key (concat "{{{{{" (cadr key) "}}}}}"))
+                (list 'idris-name-key (concat "{{{{{" (cadr key) "}}}}}"))
               ())
-            (if idris2-err
-                (list 'idris2-tt-error (cadr idris2-err))
+            (if idris-err
+                (list 'idris-tt-error (cadr idris-err))
               ())
-            (idris2-semantic-properties-help-echo props)
-            (idris2-semantic-properties-face props)
-            (idris2-semantic-properties-eldoc props))))
+            (idris-semantic-properties-help-echo props)
+            (idris-semantic-properties-face props)
+            (idris-semantic-properties-eldoc props))))
 
-(defun idris2-repl-semantic-text-props (highlighting)
+(defun idris-repl-semantic-text-props (highlighting)
   (cl-loop for (start length props) in highlighting
            collecting (list start
                             length
-                            (idris2-semantic-properties props))))
+                            (idris-semantic-properties props))))
 
-(defun idris2-add-overlay-properties (overlay plist)
+(defun idris-add-overlay-properties (overlay plist)
   "Add the contents of PLIST to the properties of OVERLAY."
   (while (and plist (cdr plist))
     (overlay-put overlay (car plist) (cadr plist))
     (setq plist (cddr plist))))
 
 ;;; Was originally slime-search-property - thanks SLIME!
-(defun idris2-search-property (prop &optional backward prop-value-fn)
+(defun idris-search-property (prop &optional backward prop-value-fn)
   "Search for the next text range where PROP is non-nil.
 Return the value of PROP, or nil if it is not found.
 If BACKWARD is non-nil, search backward.
@@ -358,29 +358,29 @@ corresponding values in the CDR of VALUE."
 	       '()
 	     `((t (error "ELISP destructure-case failed: %S" ,tmp))))))))
 
-(defun idris2-lidr-p (&optional buffer)
-  "Return t if BUFFER is a literate Idris2 file, or nil otherwise. Use the current buffer if
+(defun idris-lidr-p (&optional buffer)
+  "Return t if BUFFER is a literate Idris file, or nil otherwise. Use the current buffer if
 BUFFER is not supplied or is nil."
   (let ((file-name (buffer-file-name buffer)))
-    ;; We check for nil here because idris2-lidr-p might be called on
+    ;; We check for nil here because idris-lidr-p might be called on
     ;; buffers that don't have associated files, such as the REPL
     ;; buffer or an info buffer
     (and (stringp file-name)
          (string= (file-name-extension file-name) "lidr"))))
 
-(defun idris2-make-file-link-overlay (start end keymap help-echo)
+(defun idris-make-file-link-overlay (start end keymap help-echo)
   (let ((overlay (make-overlay start end)))
-    (overlay-put overlay 'idris2-file-link t)
+    (overlay-put overlay 'idris-file-link t)
     (overlay-put overlay 'keymap keymap)
     (overlay-put overlay 'mouse-face 'highlight)
     (overlay-put overlay 'help-echo help-echo)))
 
-(defun idris2-clear-file-link-overlays (&optional mode)
+(defun idris-clear-file-link-overlays (&optional mode)
   "Remove all file link overlays from the current buffer"
   (when (or (not mode) (eq major-mode mode))
-    (remove-overlays (point-min) (point-max) 'idris2-file-link t)))
+    (remove-overlays (point-min) (point-max) 'idris-file-link t)))
 
-(defun idris2-make-module-link (start end src-dir)
+(defun idris-make-module-link (start end src-dir)
   "Attempt to make the region between START and END into a
 clickable link to open a module for editing, with modules located
 relative to SRC-DIR"
@@ -395,10 +395,10 @@ relative to SRC-DIR"
                            (define-key map [mouse-2] #'(lambda ()
                                                          (interactive)
                                                          (find-file src-name)))
-                           (idris2-make-file-link-overlay start end map "mouse-2: edit module"))))
+                           (idris-make-file-link-overlay start end map "mouse-2: edit module"))))
       (if (file-exists-p idr)
           (make-link idr)
         (when (file-exists-p lidr)
           (make-link lidr))))))
 
-(provide 'idris2-common-utils)
+(provide 'idris-common-utils)
