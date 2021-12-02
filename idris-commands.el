@@ -330,9 +330,8 @@ Idris process. This sets the load position to point, if there is one."
          (let ((beg (point)))
            (skip-syntax-forward ".")
            (buffer-substring-no-properties beg (point))))
-     ;; Try if we're on a symbol or fail otherwise.
-     (or (current-word t)
-         (error "Nothing identifiable under point"))))
+       ;; Try if we're on a symbol or fail otherwise.
+       (current-word t)))
 
 (defun idris-thing-at-point (&optional prompt)
   "Return the name, line, and column number at point as a list. If prompt is t then
@@ -340,11 +339,11 @@ will prompt user if no symbol is there, and return what was entered by the user 
 the line and col number. Otherwise, will return nil for whole list.
 Use this in Idris source buffers."
 
-  (let ((name (or (idris-thing-at-point-raw) (and prompt (read-string "Enter symbol: " nil)))))
-    (if name
-  (list name (idris-get-line-num) (current-column)) nil)
-    )
-  )
+  (let ((name (or (idris-thing-at-point-raw)
+                  (and prompt (read-string "Enter symbol: " nil))
+                  (error "Nothing identifiable under point"))))
+       (if name
+           (list name (idris-get-line-num) (current-column)) nil)))
 
 (defun idris-name-at-point ()
   "Return the name at point, taking into account semantic
