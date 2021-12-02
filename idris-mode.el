@@ -73,13 +73,12 @@
     ["Load file" idris-load-file t]
     ["Choose packages" idris-set-idris-load-packages t]
     ["Compile and execute" idris-compile-and-execute]
-    ["Delete IBC file" idris-delete-ibc t]
+    ["Delete IBC file" idris-delete-ibc t] ;; TODO: remove in idris2 versions
     ["View compiler log" idris-view-compiler-log (get-buffer idris-log-buffer-name)]
     ["Quit inferior idris process" idris-quit t]
     "-----------------"
     ["Add initial match clause to type declaration" idris-add-clause t]
-    ;;co: not in Idris yet
-    ;;["Add missing cases" idris-add-missing t]
+    ["Add missing cases" idris-add-missing t]
     ["Case split pattern variable" idris-case-split t]
     ["Add with block" idris-make-with-block t]
     ["Extract lemma from hole" idris-make-lemma t]

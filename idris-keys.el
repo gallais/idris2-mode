@@ -54,8 +54,7 @@
 (defun idris-define-editing-keys (map)
   "Define the keys related to editing Idris code in the keymap MAP."
   (define-key map (kbd "C-c C-c") 'idris-case-dwim)
-  ;; co: not in Idris yet
-  ;; (define-key map (kbd "C-c C-m") 'idris-add-missing)
+  (define-key map (kbd "C-c C-m") 'idris-add-missing)
   (define-key map (kbd "C-c C-e") 'idris-make-lemma)
   (define-key map (kbd "C-c C-s") 'idris-add-clause)
   (define-key map (kbd "C-c C-w") 'idris-make-with-block)
@@ -114,8 +113,7 @@
                                   "l" 'idris-make-lemma
                                   "c" 'idris-case-split
                                   "w" 'idris-make-with-block
-                                  ;; co: Not in idris yet
-                                  ;; "m" 'idris-add-missing
+                                  "m" 'idris-add-missing
                                   "p" 'idris-proof-search
                                   "h" 'idris-docs-at-point)))
 
