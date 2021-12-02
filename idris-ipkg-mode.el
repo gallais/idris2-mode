@@ -77,7 +77,11 @@
     "depends"
     "modules"
     "main"
-    "executable"))
+    "executable"
+    "makefile"
+    "objs"
+    "libs"
+    "pkgs"))
 
 (defconst idris-ipkg-font-lock-defaults
   `(,idris-ipkg-keywords))

@@ -84,6 +84,16 @@ The log is placed in `idris-event-buffer-name'."
   :group 'idris
   :type 'boolean)
 
+(defcustom idris-completion-via-compiler t
+  "Use the compiler to make suggestions."
+  :type 'boolean
+  :group 'idris)
+
+(defcustom idris-display-words-of-encouragement t
+  "Send words of encouragement."
+  :type 'boolean
+  :group 'idris)
+
 ;;; Faces
 (defface idris-active-term-face
   '((((background light))
@@ -178,14 +188,16 @@ behavior."
 ;;; Mode hooks
 (defcustom idris-mode-hook '(turn-on-idris-simple-indent
                              turn-on-eldoc-mode)
-  "Hook to run upon entering Idris mode. You should choose at most one indentation style."
+  "Hook to run upon entering Idris mode. You should choose at most
+one indentation style."
   :type 'hook
   :options '(turn-on-idris-simple-indent
              turn-on-eldoc-mode)
   :group 'idris)
 
 (defcustom idris-mode-lidr-hook '()
-  "Hook to run after opening a literate Idris file. Use this to customize the display of non-code text."
+  "Hook to run after opening a literate Idris file. Use this to
+customize the display of non-code text."
   :type 'hook
   :group 'idris)
 
@@ -223,8 +235,8 @@ behavior."
   :group 'idris)
 
 (defcustom idris-hole-list-show-expanded t
-  "Show the hole list fully expanded by default. This may be useful on wide monitors
-with lots of space for the hole buffer."
+  "Show the hole list fully expanded by default. This may be useful
+on wide monitors with lots of space for the hole buffer."
   :type 'boolean
   :group 'idris-hole-list)
 
@@ -305,13 +317,15 @@ Set to `nil' for no banner."
   :group 'idris-repl)
 
 (defcustom idris-repl-prompt-style 'short
-  "What sort of prompt to show. 'long shows the Idris REPL prompt, while 'short shows a shorter one."
+  "What sort of prompt to show. 'long shows the Idris REPL prompt,
+while 'short shows a shorter one."
   :options '(short long)
   :type 'symbol
   :group 'idris-repl)
 
 (defcustom idris-repl-show-repl-on-startup t
-  "If non-`nil', show the REPL window when Idris starts. If `nil', only do this when `idris-repl' was called interactively."
+  "If non-`nil', show the REPL window when Idris starts. If `nil',
+only do this when `idris-repl' was called interactively."
   :type 'boolean
   :group 'idris-repl)
 

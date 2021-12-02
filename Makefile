@@ -1,7 +1,9 @@
 # Makefile for idris-mode, to run tests and ensure dependencies are in order
 # Portions based on the Makefile for Proof General
 
-EMACS=emacs
+EMACS ?= emacs
+
+NEED_PKGS=prop-menu
 
 NEED_PKGS=prop-menu
 
@@ -11,7 +13,11 @@ BATCHEMACS=$(EMACS) --batch --no-site-file -q \
 	-eval '(add-to-list (quote package-archives) (quote ("melpa" . "http://melpa.org/packages/")) t)' \
 	-eval '(package-initialize)'
 
-BYTECOMP = $(BATCHEMACS) -eval '(progn (require (quote bytecomp)) (setq byte-compile-warnings t) (setq byte-compile-error-on-warn t))' -f batch-byte-compile
+BYTECOMP = $(BATCHEMACS) \
+	-eval '(require (quote bytecomp))' \
+	-eval '(setq byte-compile-warnings t)' \
+	-eval '(setq byte-compile-error-on-warn t)' \
+	-f batch-byte-compile
 
 OBJS =	idris-commands.elc		\
 	idris-common-utils.elc		\
@@ -43,10 +49,24 @@ build: getdeps $(OBJS)
 test: getdeps build
 	$(BATCHEMACS) -L . -l ert -l idris-tests.el -f ert-run-tests-batch-and-exit
 
-clean:
-	-rm -f $(OBJS)
-	-rm -f test-data/*ibc
+test2: getdeps build
+	$(BATCHEMACS) -L . \
+		-eval '(setq idris-interpreter-path (executable-find "idris2"))' \
+		-eval '(setq idris-repl-history-file "~/.idris2/idris2-history.eld")' \
+		-l ert -l idris-tests2.el -f ert-run-tests-batch-and-exit
 
+test3: getdeps build
+	$(BATCHEMACS) -L . \
+		-eval '(setq idris-interpreter-path (executable-find "idris2"))' \
+		-eval '(setq idris-repl-history-file "idris2-history.eld")' \
+		-eval '(setq idris-log-events t)' \
+		-l ert -l idris-tests3.el -f ert-run-tests-batch-and-exit
+
+clean:
+	-${RM} -f $(OBJS)
+	-${RM} -f test-data/*ibc
+	-${RM} -rf test-data/build/
+	-${RM} -r docs/auto docs/*.aux docs/*.log docs/*.pdf
 getdeps:
 	$(BATCHEMACS) -eval \
 		"(let* \
@@ -56,4 +76,7 @@ getdeps:
 		    (package-refresh-contents) \
 		    (mapcar #'package-install want-pkgs)))"
 
-.PHONY: clean build test getdeps
+docs: docs/documentation.tex
+	-@( cd docs/ && latexmk -xelatex documentation.tex )
+
+.PHONY: clean build test getdeps docs

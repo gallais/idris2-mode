@@ -76,7 +76,8 @@
      t)))
 
 (defvar-local idris-load-packages nil
-  "The list of packages to be loaded by Idris. Set using file or directory variables.")
+  "The list of packages to be loaded by Idris. Set using file or
+directory variables.")
 
 (defun idris-compute-flags ()
   "Calculate the command line options to use when running Idris."
@@ -141,7 +142,9 @@
     (set-process-query-on-exit-flag idris-connection t)
     (setq idris-process-current-working-directory "")
     (run-hooks 'idris-run-hook)
-    (message "Connected. %s" (idris-random-words-of-encouragement))))
+    (when idris-display-words-of-encouragement
+      (message "Connected. %s" (idris-random-words-of-encouragement)))
+    ))
 
 (defun idris-sentinel (_process msg)
   (message "Idris disconnected: %s" (substring msg 0 -1))
@@ -154,7 +157,25 @@
 
 (defvar idris-process-port-output-regexp (rx (? (group (+ any (not num)))) (group (+ (any num))))
   "Regexp used to match the port of an Idris process.")
+(defvar idris-process-exact-port-output-regexp (rx bol (group (+ (any num))) eol)
+  "Regexp to match port number")
+(defvar idris-exact-port-matcher 1
+  "port number matcher")
 
+(defvar idris-process-port-with-warning-output-regexp
+  (rx (? (group (+ any (not num)))) (group (** 3 4 (any num)))))
+;;      ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+;;           ^                          ^
+;;           |                          |
+;;           |                          +---- port number
+;;           +------------------------------- warning message
+(defvar idris-warning-matcher 1
+  "Warning from idris")
+(defvar idris-warning-port-matcher 2
+  "port number matcher with warning")
+
+
+;; idris-process-filter is broken in theoreticaly.
 (defun idris-process-filter (string)
   "Accept output from the process"
   (if idris-connection
@@ -164,11 +185,13 @@
     (cl-flet ((idris-warn (msg)
                           (unless (or (null msg) (string-blank-p msg))
                             (message "Warning from Idris: %s" msg))))
-      (if (not (string-match idris-process-port-output-regexp string))
-          (idris-warn string)
-        (idris-warn (match-string 1 string))
-        (idris-connect (string-to-number (match-string 2 string))))
-      "")))
+        (if (string-match idris-process-exact-port-output-regexp string)
+            (idris-connect (string-to-number (match-string idris-exact-port-matcher string)))
+          (if (not (string-match idris-process-port-with-warning-output-regexp string))
+              (idris-warn string)
+            (idris-warn (match-string idris-warning-matcher string))
+            (idris-connect (string-to-number (match-string idris-warning-port-matcher string))))
+          ""))))
 
 (defun idris-show-process-buffer (string)
   "Show the Idris process buffer if STRING is non-empty."
@@ -336,7 +359,7 @@ trigger warning buffers and don't call `ERROR' if there was an
 Idris error."
   (let* ((tag (cl-gensym (format "idris-result-%d-"
                                  (1+ idris-continuation-counter))))
-	 (idris-stack-eval-tags (cons tag idris-stack-eval-tags)))
+         (idris-stack-eval-tags (cons tag idris-stack-eval-tags)))
     (apply
      #'funcall
      (catch tag

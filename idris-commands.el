@@ -83,9 +83,12 @@
   (idris-repl-buffer))
 
 (defun idris-switch-working-directory (new-working-directory)
+  "Switch working directory."
   (unless (string= idris-process-current-working-directory new-working-directory)
     (idris-ensure-process-and-repl-buffer)
-    (idris-eval `(:interpret ,(concat ":cd \"" new-working-directory "\"")))
+    (if (> idris-protocol-version 1)
+        (idris-eval `(:interpret ,(concat ":cd " (prin1-to-string new-working-directory))))
+        (idris-eval `(:interpret ,(concat ":cd " new-working-directory))))
     (setq idris-process-current-working-directory new-working-directory)))
 
 (defun idris-list-holes-on-load ()
@@ -204,7 +207,13 @@ A prefix argument forces loading but only up to the current line."
         ;; Actually do the loading
         (let* ((dir-and-fn (idris-filename-to-load))
                (fn (cdr dir-and-fn))
-               (srcdir (car dir-and-fn)))
+               (srcdir
+                (if (> idris-protocol-version 1)
+                    (prin1-to-string (car dir-and-fn))
+                    (car dir-and-fn)
+                 )
+                )
+               )
           (setq idris-currently-loaded-buffer nil)
           (idris-switch-working-directory srcdir)
           (idris-delete-ibc t) ;; delete the ibc to avoid interfering with partial loads
@@ -691,7 +700,10 @@ KILLFLAG is set if N was explicitly specified."
         (if (<= (length result) 2)
             (message "Can't case split %s" (car what))
           (delete-region (line-beginning-position) (line-end-position))
-          (insert (substring result 0 (length result))))))))
+          (if (> idris-protocol-version 1)
+              (insert (substring result 0 (length result)))
+              (insert (substring result 0 (1- (length result))))
+              ))))))
 
 (defun idris-make-cases-from-hole ()
   "Make a case expression from the metavariable at point."
@@ -703,7 +715,10 @@ KILLFLAG is set if N was explicitly specified."
         (if (<= (length result) 2)
             (message "Can't make cases from %s" (car what))
           (delete-region (line-beginning-position) (line-end-position))
-          (insert (substring result 0 (1- (length result)))))))))
+          (if (> idris-protocol-version 1)
+              (insert (substring result 0 (length result)))
+              (insert (substring result 0 (1- (length result))))
+              ))))))
 
 (defun idris-case-dwim ()
   "If point is on a hole name, make it into a case expression. Otherwise, case split as a pattern variable."
@@ -808,7 +823,12 @@ KILLFLAG is set if N was explicitly specified."
   (idris-load-file-sync)
   (idris-eval '(:interpret ":exec")))
 
-(defun idris-proof-search (&optional _)
+(defvar-local proof-region-start nil
+  "The start position of the last proof region.")
+(defvar-local proof-region-end nil
+  "The end position of the last proof region.")
+
+(defun idris-proof-search (&optional arg)
   "Invoke the proof search. A plain prefix argument causes the
 command to prompt for hints and recursion depth, while a numeric
 prefix argument sets the recursion depth directly."
@@ -817,18 +837,93 @@ prefix argument sets the recursion depth directly."
       ((what (idris-thing-at-point)))
     (when (car what)
       (save-excursion (idris-load-file-sync))
-      (let ((result (car (idris-eval `(:proof-search ,(cadr what) ,(car what))))))
-  (if (string= result "")
-      (error "Nothing found")
-    (save-excursion
-      (let ((start (progn (search-backward "?") (point)))
-      (end (progn (forward-char) (search-forward-regexp "[^a-zA-Z0-9_']") (backward-char) (point))))
-        (delete-region start end))
-      (insert result)))))
-    )
-  )
+      (let ((result (car (if (> idris-protocol-version 1)
+                             (idris-eval `(:proof-search ,(cdr what) ,(car what)))
+                             (idris-eval `(:proof-search ,(cdr what) ,(car what) ,hints ,@depth))
+                           ))))
+        (if (string= result "")
+            (error "Nothing found")
+          (save-excursion
+            (let ((start (progn (search-backward "?") (point)))
+                  (end (progn (forward-char) (search-forward-regexp "[^a-zA-Z0-9_']") (backward-char) (point))))
+              (delete-region start end))
+            (setq proof-region-start (point))
+            (insert result)
+            (setq proof-region-end (point))))))))
 
-(defun idris-refine (_)
+(defun idris-proof-search-next ()
+  "Replace the previous proof search result with the next one, if it exists.  Idris 2 only."
+  (interactive)
+  (if (not proof-region-start)
+      (error "You must proof search first before looking for subsequent proof results.")
+    (let ((result (car (idris-eval `:proof-search-next))))
+      (if (string= result "No more results")
+          (message "No more results")
+        (save-excursion
+          (goto-char proof-region-start)
+          (delete-region proof-region-start proof-region-end)
+          (setq proof-region-start (point))
+          (insert result)
+          (setq proof-region-end (point)))))))
+
+(defvar-local def-region-start nil)
+(defvar-local def-region-end nil)
+
+(defun idris-generate-def ()
+  "Generate defintion."
+  (interactive)
+  (let ((what (idris-thing-at-point)))
+    (when (car what)
+      (save-excursion (idris-load-file-sync))
+      (let ((result (car (idris-eval `(:generate-def ,(cdr what) ,(car what)))))
+            final-point
+            (prefix (save-excursion
+                      (goto-char (point-min))
+                      (forward-line (1- (cdr what)))
+                      (goto-char (line-beginning-position))
+                      (re-search-forward "\\(^>?\\s-*\\)" nil t)
+                      (let ((prefix (match-string 1)))
+                        (if prefix
+                            prefix
+                          "")))))
+        (if (string= result "")
+            (error "Nothing found")
+          (goto-char (line-beginning-position))
+          (forward-line)
+          (while (and (not (eobp))
+                      (progn (goto-char (line-beginning-position))
+                             (looking-at-p (concat prefix "\\s-+"))))
+            (forward-line))
+          (insert prefix)
+          (setq final-point (point))
+          (setq def-region-start (point))
+          (insert result)
+          (setq def-region-end (point))
+          (newline)
+          (goto-char final-point)
+;          (save-excursion
+;            (forward-line 1)
+;            (setq def-region-start (point))
+;            (insert result)
+;            (setq def-region-end (point)))
+          )))))
+
+(defun idris-generate-def-next ()
+  "Replace the previous generated definition with next definition, if it exists.  Idris 2 only."
+  (interactive)
+  (if (not def-region-start)
+      (error "You must program search first before looking for subsequent program results.")
+    (let ((result (car (idris-eval `:generate-def-next))))
+      (if (string= result "No more results")
+          (message "No more results")
+        (save-excursion
+          (goto-char def-region-start)
+          (delete-region def-region-start def-region-end)
+          (setq def-region-start (point))
+          (insert result)
+          (setq def-region-end (point)))))))
+
+(defun idris-refine (name)
   "Refine by some NAME, without recursive proof search."
   (interactive)
   (message "No refine in Idris yet!")
@@ -856,14 +951,15 @@ already loaded, as a buffer awaiting completion is probably not
 type-correct, so loading will fail."
   (if (not idris-process)
       nil
-    (cl-destructuring-bind (identifier start end) (idris-identifier-backwards-from-point)
-      (when identifier
-        (let ((result (car (idris-eval `(:repl-completions ,identifier)))))
-          (cl-destructuring-bind (completions _partial) result
-            (if (null completions)
-                nil
-              (list start end completions
-                    :exclusive 'no))))))))
+    (when idris-completion-via-compiler
+      (cl-destructuring-bind (identifier start end) (idris-identifier-backwards-from-point)
+        (when identifier
+          (let ((result (car (idris-eval `(:repl-completions ,identifier)))))
+            (cl-destructuring-bind (completions _partial) result
+              (if (null completions)
+                  nil
+                (list start end completions
+                      :exclusive 'no)))))))))
 
 (defun idris-complete-keyword-at-point ()
   "Attempt to complete the symbol at point as an Idris keyword."

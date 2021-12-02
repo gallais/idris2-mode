@@ -214,8 +214,8 @@ a preview and offer to widen."
 
 (defun idris-tree-decoration (tree)
   (cond ((idris-tree-leaf-p tree) "--")
-	((idris-tree.collapsed-p tree) "[+]")
-	(t "- +")))
+        ((idris-tree.collapsed-p tree) "[+]")
+        (t "- +")))
 
 (defun idris-tree-insert-list (list prefix)
   "Insert a list of trees."
