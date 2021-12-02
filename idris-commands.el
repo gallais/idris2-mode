@@ -764,8 +764,12 @@ KILLFLAG is set if N was explicitly specified."
 (defun idris-add-missing ()
   "Add missing cases"
   (interactive)
-  (message "No add-missing in Idris yet")
-  )
+  (let ((what (idris-thing-at-point)))
+    (when (car what)
+      (save-excursion (idris-load-file-sync))
+      (let ((result (car (idris-eval `(:add-missing ,(cdr what) ,(car what))))))
+        (forward-line 1)
+        (insert result)))))
 
 (defun idris-make-with-block ()
   "Add with block"
