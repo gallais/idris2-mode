@@ -349,17 +349,14 @@ Use this in Idris source buffers."
   "Return the name at point, taking into account semantic
 annotations. Use this in Idris source buffers or in
 compiler-annotated output. Does not return a line number."
-  ;; co: this isn't working right... pointer on function name and it goes to first argument.
-  ;;     TODO 2.9 not sure these overlays are appropriate in general, anyway. may rewrite with text properties
-  ;; (let ((ref (cl-remove-if
-  ;;             #'null
-  ;;             (cons (get-text-property (point) 'idris-ref)
-  ;;                   (cl-loop for overlay in (overlays-at (point))
-  ;;                            collecting (overlay-get overlay 'idris-ref))))))
-    ;; (if (null ref)
+  (let ((ref (cl-remove-if
+              #'null
+              (cons (get-text-property (point) 'idris-ref)
+                    (cl-loop for overlay in (overlays-at (point))
+                             collecting (overlay-get overlay 'idris-ref))))))
+    (if (null ref)
         (car (idris-thing-at-point))
-  ;; (car ref))))
-  )
+        (car ref))))
 
 (defun idris-info-for-name (what name &optional pos)
   "Display the type for a name"
