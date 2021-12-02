@@ -815,9 +815,31 @@ KILLFLAG is set if N was explicitly specified."
                    ;; make sure point ends up ready to start a new pattern match
                    (goto-char end-point))))
               ((equal lemma-type :provisional-definition-lemma)
-               (message
-"idris-make-lemma: received an unsupported \
-'provisional-definition-lemma' response. Ignored.")))))))
+               (let ((clause (cadr (assoc :definition-clause (cdr result)))))
+                 ;; Insert the definition just after the current definition
+                 ;; This can either be before the next type definition or at the end of
+                 ;; the buffer, if there is no next type definition
+                 (let ((next-defn-point
+                        (re-search-forward (if (idris-lidr-p)
+                                               "^\\(>\\s-*\\)\\(([^)]+)\\|\\w+\\)\\s-*:"
+                                             "^\\(\\s-*\\)\\(([^)]+)\\|\\w+\\)\\s-*:") nil t)))
+                   (if next-defn-point ;; if we found a definition
+                       (let ((indentation (match-string 1)) end-point)
+                         (goto-char next-defn-point)
+                         (beginning-of-line)
+                         (insert indentation)
+                         (setq end-point (point))
+                         (insert clause)
+                         (newline 2)
+                         ;; make sure point is at new defn
+                         (goto-char end-point))
+                     ;; otherwise it goes at the end of the buffer
+                     (let ((end (point-max)))
+                       (goto-char end)
+                       (insert clause)
+                       (newline)
+                       ;; make sure point is at new defn
+                       (goto-char end)))))))))))
 
 (defun idris-compile-and-execute ()
   "Execute the program in the current buffer"
