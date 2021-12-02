@@ -809,7 +809,7 @@ KILLFLAG is set if N was explicitly specified."
                    (goto-char end-point))))
               ((equal lemma-type :provisional-definition-lemma)
                (message
-"idris-make-lemma: recieved an unsupported \
+"idris-make-lemma: received an unsupported \
 'provisional-definition-lemma' response. Ignored.")))))))
 
 (defun idris-compile-and-execute ()
