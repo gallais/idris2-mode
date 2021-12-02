@@ -232,31 +232,31 @@ $ git clone https://github.com/idris-community/idris2-mode
 
 Then in your `~/.emacs.d/init.el` file, add:
 ```
-(add-to-list 'load-path "~/.emacs.d/idris2-mode/")
-(require 'idris2-mode)
+(add-to-list 'load-path "~/.emacs.d/idris-mode/")
+(require 'idris-mode)
 ```
 
 Here is what works so far:
 ```
-M-n		idris2-next-error
-M-p		idris2-previous-error
+M-n		idris-next-error
+M-p		idris-previous-error
 
-C-c C-a		idris2-proof-search
-C-c C-c		idris2-case-dwim
-C-c C-e		idris2-make-lemma
-C-c C-l		idris2-load-file
-C-c C-s		idris2-add-clause
-C-c C-t		idris2-type-at-point
-C-c C-w		idris2-make-with-block
-C-c C-z		idris2-pop-to-repl
-C-c C-b C-b	idris2-ipkg-build
-C-c C-b C-c	idris2-ipkg-clean
-C-c C-b TAB	idris2-ipkg-install
-C-c C-b C-p	idris2-open-package-file
-C-c C-d C-d	idris2-docs-at-point
-C-c C-d C-t	idris2-type-search
-<unmapped>  idris2-jump-to-def
-<unmapped>  idris2-jump-to-def-same-window
+C-c C-a		idris-proof-search
+C-c C-c		idris-case-dwim
+C-c C-e		idris-make-lemma
+C-c C-l		idris-load-file
+C-c C-s		idris-add-clause
+C-c C-t		idris-type-at-point
+C-c C-w		idris-make-with-block
+C-c C-z		idris-pop-to-repl
+C-c C-b C-b	idris-ipkg-build
+C-c C-b C-c	idris-ipkg-clean
+C-c C-b TAB	idris-ipkg-install
+C-c C-b C-p	idris-open-package-file
+C-c C-d C-d	idris-docs-at-point
+C-c C-d C-t	idris-type-search
+<unmapped>  idris-jump-to-def
+<unmapped>  idris-jump-to-def-same-window
 ```
 
 Note, if you use evil-mode, you'll probably want to use this to
