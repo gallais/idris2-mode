@@ -650,10 +650,13 @@ KILLFLAG is set if N was explicitly specified."
   (interactive "sSearch for type: ")
   (idris-info-for-name :interpret (concat ":search " what)))
 
-(defun idris-docs-at-point (_)
+(defun idris-docs-at-point (thing)
   "Display the internal documentation for the name at point, considered as a global variable"
-  (interactive)
-  (message "Not implemented yet"))
+  (interactive "P")
+  (let ((name (if thing (read-string "Docs: ")
+                (idris-name-at-point))))
+    (when name
+      (idris-info-for-name :docs-for name))))
 
 (defun idris-eldoc-lookup ()
   "Support for showing type signatures in the modeline when there's a running Idris"
