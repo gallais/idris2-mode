@@ -433,7 +433,7 @@ compiler-annotated output. Does not return a line number."
   "Display the type of the name at point, considered as a global variable"
   (interactive "P")
   (let ((name (if thing (read-string "Check: ")
-                (idris-thing-at-point))))
+                (idris-name-at-point))))
     (when name
       (idris-info-for-name :type-of (car name) (cdr name)))))
 
@@ -1349,7 +1349,7 @@ of the term to replace."
                              "infinite"))))
     (when (and idris-process
                (not idris-prover-currently-proving))
-        (idris-eval `(:interpret ,command) t) ;; TIMHACK
+        (idris-eval `(:interpret ,command) t)
      )))
 
 ;;; Computing a menu with these commands
