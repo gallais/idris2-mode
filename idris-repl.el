@@ -57,9 +57,6 @@
 (defun idris-get-bg-color () (face-attribute 'default :background))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(eval-when-compile (require 'cl))
-
-
 (defvar idris-prompt-string "Idris"
   "The prompt shown in the REPL.")
 
