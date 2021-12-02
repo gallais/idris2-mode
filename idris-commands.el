@@ -323,17 +323,16 @@ Idris process. This sets the load position to point, if there is one."
 (defun idris-thing-at-point-raw ()
   "Return the name at point, or nil otherwise. Use this in Idris source buffers."
    (if (equal (syntax-after (point))
-        (string-to-syntax ".")) ;; TODO 3 probably this should be replaced with idris operator characters
+              (string-to-syntax "."))
        ;; We're on an operator.
        (save-excursion
-   (skip-syntax-backward ".")
-   (let ((beg (point)))
-     (skip-syntax-forward ".")
-     (buffer-substring-no-properties beg (point))))
+         (skip-syntax-backward ".")
+         (let ((beg (point)))
+           (skip-syntax-forward ".")
+           (buffer-substring-no-properties beg (point))))
      ;; Try if we're on a symbol or fail otherwise.
-     (current-word t)
-     )
-  )
+     (or (current-word t)
+         (error "Nothing identifiable under point"))))
 
 (defun idris-thing-at-point (&optional prompt)
   "Return the name, line, and column number at point as a list. If prompt is t then
@@ -833,8 +832,18 @@ KILLFLAG is set if N was explicitly specified."
 command to prompt for hints and recursion depth, while a numeric
 prefix argument sets the recursion depth directly."
   (interactive "P")
-  (let
-      ((what (idris-thing-at-point)))
+  (let ((hints (if (consp arg)
+                   (split-string (read-string "Hints: ") "[^a-zA-Z0-9']")
+                 '()))
+        (depth (cond ((consp arg)
+                      (let ((input (string-to-number (read-string "Search depth: "))))
+                        (if (= input 0)
+                            nil
+                          (list input))))
+                     ((numberp arg)
+                      (list arg))
+                     (t nil)))
+         (what (idris-thing-at-point)))
     (when (car what)
       (save-excursion (idris-load-file-sync))
       (let ((result (car (if (> idris-protocol-version 1)
@@ -925,9 +934,17 @@ prefix argument sets the recursion depth directly."
 
 (defun idris-refine (name)
   "Refine by some NAME, without recursive proof search."
-  (interactive)
-  (message "No refine in Idris yet!")
-)
+  (interactive "MRefine by: ")
+  (let ((what (idris-thing-at-point)))
+    (unless (car what)
+      (error "Could not find a hole at point to refine by"))
+    (save-excursion (idris-load-file-sync))
+    (let ((result (car (idris-eval `(:refine ,(cdr what) ,(car what) ,name)))))
+      (save-excursion
+        (let ((start (progn (search-backward "?") (point)))
+              (end (progn (forward-char) (search-forward-regexp "[^a-zA-Z0-9_']") (backward-char) (point))))
+          (delete-region start end))
+        (insert result)))))
 
 (defun idris-identifier-backwards-from-point ()
   (let (identifier-start
