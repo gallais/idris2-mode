@@ -1464,4 +1464,3 @@ of the term to replace."
                           (idris--active-term-beginning tt-term pos)))))))))))
 
 (provide 'idris-commands)
-;; idris-commands.el ends here
