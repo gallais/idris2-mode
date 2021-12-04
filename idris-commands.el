@@ -1378,8 +1378,7 @@ of the term to replace."
                              "infinite"))))
     (when (and idris-process
                (not idris-prover-currently-proving))
-        (idris-eval `(:interpret ,command) t)
-     )))
+      (idris-eval `(:interpret ,command) t))))
 
 ;;; Computing a menu with these commands
 (defun idris-context-menu-items (plist)

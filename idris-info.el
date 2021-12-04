@@ -29,7 +29,6 @@
 (require 'idris-core)
 (require 'idris-common-utils)
 
-
 (defvar idris-info-history (list () nil ())
   "A zipper into the history for idris-info-mode.
 It is a three-element list whose first element is the history,
@@ -70,7 +69,6 @@ Following the behavior of Emacs help buffers, the future is deleted."
 
 (defvar idris-buffer-to-return-to-from-info-buffer
   "The buffer that should be returned to when the info buffer is closed.")
-
 
 (defvar idris-info-mode-map
   (let ((map (make-keymap)))
