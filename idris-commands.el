@@ -433,7 +433,7 @@ compiler-annotated output. Does not return a line number."
   "Display the type of the name at point, considered as a global variable"
   (interactive "P")
   (let ((name (if thing (read-string "Check: ")
-                (idris-name-at-point))))
+                (idris-thing-at-point))))
     (when name
       (idris-info-for-name :type-of (car name) (cdr name)))))
 
