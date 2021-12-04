@@ -130,8 +130,8 @@ Invokes `idris-compiler-notes-mode-hook'."
   "Opens buffer for filename"
   (if (file-exists-p fullpath)
     (or (get-buffer fullpath)
-	(get-file-buffer fullpath)
-	(find-file-noselect fullpath)))
+        (get-file-buffer fullpath)
+        (find-file-noselect fullpath)))
   )
 
 (defun idris-goto-source-location-full (fullpath lineno col is-same-window)
